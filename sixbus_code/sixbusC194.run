@@ -1,0 +1,283 @@
+#This run file is created for the simple test example for the two-stage problem.
+# This problem uses fitted input from other sources.
+# this file uses 50 all scenarios in the optimization 
+
+model sixbus.mod;
+
+# param N_DAYS := 1;     # number of days to run.
+#let N_SCEN  := 20;   # Define the number of scenarios
+param time0;
+let time0 :=time(); # initial time 
+param time1;
+param nIter;  # number of iterations.
+
+
+problem Master: u, y, z, Min_Stage2_Profit,
+   Expected_Profit, status1, statusI,startup1,startupI,shutdown1,shutdownI,upI,downI,startU,startD,DownU,DownD,Cut_Defn;
+# ,define master problem  variable objective constraints
+
+#problem Sub: Make, Inv, Sell, Exp_Stage2_Profit, Time, Balance2, Balance;
+# define sub-problem 
+
+problem Sub{s in S}: 
+   {i in I,t in T} p[i,t,s],
+   {i in I, k in K, t in T} delta[i,k,t,s],  
+ {i in I, t in T} gen1[i,t,s], 
+   {b in B, t in T} ens[b,t,s], 
+   {w in WG, t in T} wg[w,t,s], 
+   {b in B, t in T} theta[b,t,s],
+   Exp_Stage2_Profit[s], 
+ {i in I, k in K, t in T} delta1[i,k,t,s],
+   {w in WG, t in T} wcap[w,t,s],
+   {t in T} flowconst[t,s], 
+ {t in T, b in 1..(NBUSES-1)} DCfl[t,s,b],
+  {t in T} theB[t,s],
+ # # {l in L, t in T} dcflow[l,t,s],  # no need now for the usage of defining pf 
+  {l in L, t in T} linecap1[l,t,s],
+   {l in L, t in T} linecap2[l,t,s],
+   {i in I, t in T} OutUp[i,t,s],
+   {i in I, t in T} OutLow[i,t,s];
+# {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]=PMAX[i],p[i,t-1,ss]=0} rampup1[i,t,s ss],
+#  {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]=PMAX[i],p[i,t-1,ss]=PMAX[i]} rampup2[i,t,s ss],
+#   {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]=PMAX[i],p[i,t-1,ss]=PMIN[i]} rampup3[i,t,s ss],
+#   {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]=PMIN[i],p[i,t-1,ss]=PMIN[i]} rampup4[i,t,s ss],
+#   {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]=PMIN[i],p[i,t-1,ss]=PMAX[i]} rampup5[i,t,s ss],
+#   {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]=PMIN[i],p[i,t-1,ss]=0} rampup6[i,t,s ss],   
+#   {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]=0,p[i,t-1,ss]=0} rampup7[i,t,s ss],
+#  {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]=PMAX[i],p[i,t-1,ss]=0} rampdn1[i,t,s ss],
+#  {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]=PMAX[i],p[i,t-1,ss]=PMAX[i]} rampdn2[i,t,s ss],
+#    {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]=PMAX[i],p[i,t-1,ss]=PMIN[i]} rampdn3[i,t,s ss],
+#       {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]=PMIN[i],p[i,t-1,ss]=PMIN[i]} rampdn5[i,t,s ss],
+#    {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]=PMIN[i],p[i,t-1,ss]=PMAX[i]} rampdn4[i,t,s ss],
+ #  {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]=PMIN[i],p[i,t-1,ss]=0} rampdn6[i,t,s ss],   
+  # {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]=0,p[i,t-1,ss]=0} rampdn7[i,t,s ss];
+
+
+
+# define sub-problem for evaluation
+
+problem SubT{s in SS}: 
+   {i in I,t in T} pT[i,t,s],
+   {i in I, k in K, t in T} deltaT[i,k,t,s],  
+ {i in I, t in T} gen1T[i,t,s], 
+   {b in B, t in T} ensT[b,t,s], 
+   {w in WG, t in T} wgT[w,t,s], 
+   {b in B, t in T} thetaT[b,t,s],
+   Exp_Stage2_ProfitT[s], 
+ {i in I, k in K, t in T} delta1T[i,k,t,s],
+   {w in WG, t in T} wcapT[w,t,s],
+   {t in T} flowconstT[t,s], 
+ {t in T, b in 1..(NBUSES-1)} DCflT[t,s,b],
+  {t in T} theBT[t,s],
+ # # {l in L, t in T} dcflowT[l,t,s],  # no need now for the usage of defining pf 
+  {l in L, t in T} linecap1T[l,t,s],
+   {l in L, t in T} linecap2T[l,t,s],
+   {i in I, t in T} OutUpT[i,t,s],
+   {i in I, t in T} OutLowT[i,t,s];
+    
+
+
+
+
+
+
+let NHOURS:=24;     # number of hours in a day;
+let NUNITS:=3;  # number of thermal generators; 3 in the six bus system
+let N_GEN:=3;  # number of generators we consider;
+let NSEGMENTS :=4;  # for linerization; equally devide the [min, max] range into 4 blocks.
+let CENS :=3500; # cost of unserved energy;
+let CWC:=50;  # wind curtailment;
+let N_SCEN :=50; # number of scenarios we consider;
+let N_SCENT :=1; # batch size of evaluation
+let NLINES :=7;  # number of lines
+let NBUSES :=6;  # number of buses
+let NWINDS :=1; # number of wind farms
+
+read {i in I} MDT[i] < sixbusmdt.txt;
+read {i in I} MUT[i] < sixbusmut.txt;
+read {i in I} INOFF[i] < sixbusinoff.txt;
+read {i in I} MBOFF[i] < sixbusmboff.txt;
+read {i in I} MBON[i] < sixbusmbon.txt;
+read {i in I} UO[i] < sixbusuo.txt;
+read {i in I} NLC[i] < sixbusnlc.txt;  # min operations cost 
+read {i in I} SUC[i] < sixbussuc.txt;  # start up cost
+read {i in I} SDC[i] < sixbussdc.txt;  # shut down cost
+read {i in I, k in K} PR[i,k]<sixbuspr.txt;  # each segment size size(not range)
+read {i in I} PMAX[i] < sixbuspmax.txt; 
+read {i in I} PMIN[i] < sixbuspmin.txt; 
+read {i in I} RD[i] < sixbusrd.txt; 
+read {i in I} RSD[i] < sixbusrsd.txt; 
+read {i in I} RSU[i] < sixbusrsu.txt; 
+read {i in I} RU[i] < sixbusru.txt; 
+read {i in I, k in K} MC[i,k]<sixbusmc.txt; 
+#read {i in I} MCL[i]<sixbuslinear.txt;   
+read {i in I} GENBUS[i] < sixbusgenbus.txt;
+read {l in L} LINEADM[l] < sixbuslineadm.txt;
+read {l in L} LINEBUSFROM[l] < sixbuslinefrom.txt;
+read {l in L} LINEBUSTO[l] < sixbuslineto.txt;
+read {l in L} LINECAP[l] < sixbuslinecap.txt;
+read {t in T} D[t] < sixbusdemand.txt;
+read {b in B} LOADDIS[b] < sixbusloaddis.txt;
+
+let WINDBUS[1] :=4; # first wind farm locates on bus 4.
+
+read {b in 1..(NBUSES-1), bb in 1..(NBUSES-1)} BMATRIX[b,bb] < sixbusbmatrix.txt;
+
+read {w in WG,t in T,s in S} WC[w,t,s] < sixbuswind1CP.txt;  # true capacity of a scenario, wind capacity 100MW 
+
+
+
+
+
+
+
+
+#let RUN_RT  := 1;                        # Use 1 to simulate the real-time market, use 0 otherwise
+# let RUN_DA  := 1;                        # Use 1 to simulate the day-ahead market, use 0 otherwise, RUN_DA and RUN_RT cannot be 1 concurrently.
+
+##############################################################
+
+######################################################
+
+#param nCutOpt;   # number of solution total optimality cut added
+param nIterGap;  # number of iterations to relax gap for difficult days
+#param Z_LB {1..nIter+1};         # lower bound
+# param Z_UB {1..nIter+1};         # upper bound
+param Z_GAP{1..nIter+1};   # gap between bounds.
+param Z_SUM{1..nIter+1};   # gap between bounds.
+param FLAGSUBOPT;                # flag to run optimal subproblem
+param BDGAP := 1e-3;             # BD Convergence Gap
+param MAXBDITER := 100;          # maximum bd iteration 
+param totalcost;  # total cost;
+let totalcost :=0;  # initial cost;
+
+param vars;  # second-stage variance
+param means;  #second-stage mean
+
+
+
+
+# SIMULATION STARTS
+
+
+
+	        let nIter := 0;
+		let nCutOpt := 0;
+	#	let SOLVETIME := 0;
+	#	let Z_LB[1] := 0;
+	#	let Z_UB[1] := Infinity;
+                let Z_GAP[1]:= Infinity;
+       for {1..1001} {                
+                 let nCutOpt := nCutOpt + 1;      
+                     
+                
+
+
+
+
+                   # UNIT COMMITMENT STARTS
+                 solve Master;
+                 printf "\n";
+               #  option display_1col 20;
+               #  display H, Y, up1,Expected_Profit;    
+
+                 let nIter := nIter + 1;
+               #  let nCutOpt := nCutOpt+1;
+               #    let Z_LB[nIter+1] := Expected_Profit;           
+                
+              # ED second-stage problem
+                                      
+               for {s in S} {
+                       solve Sub[s];
+                     let {i in I, t in T} gen1dual[i,t,s,nCutOpt] := gen1 [i, t, s].dual;
+                 let {i in I, k in K, t in T} delta1dual[i,k,t,s,nCutOpt] := delta1 [i,k,t,s].dual;
+                       let {w in WG, t in T} wcap1dual[w,t,s,nCutOpt] := wcap[w, t, s].dual; 
+                       let {t in T} flowconstdual[t,s,nCutOpt] := flowconst[t,s].dual;
+                 let {b in 1..(NBUSES-1), t in T} DCfldual[t,s,b,nCutOpt] := DCfl[t,s,b].dual;
+                let {l in L, t in T} linecap1dual[l,t,s,nCutOpt] := linecap1[l, t, s].dual; 
+         let {l in L, t in T} linecap2dual[l,t,s,nCutOpt] := linecap2[l, t, s].dual;  
+                       let {i in I, t in T} OutUpdual[i,t,s,nCutOpt] := OutUp[i, t, s].dual;  
+                       let {i in I, t in T} OutLowdual[i,t,s,nCutOpt] := OutLow[i, t, s].dual;  
+
+                   #    let {i in I, t in T: t>=2} rampupdual[i,t,s,nCutOpt] := rampup[i, t, s].dual;  
+                   #    let {i in I, t in T: t>=2} rampdndual[i,t,s,nCutOpt] := rampdn[i, t, s].dual;    
+
+
+  #let {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]==PMAX[i],p[i,t-1,ss]==0} rampup1dual[i,t,s,ss,nCutOpt] :=rampup1[i,t,s ss].dual;
+  #let {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]==PMAX[i],p[i,t-1,ss]==PMAX[i]} rampup2dual[i,t,s,ss,nCutOpt] :=rampup2[i,t,s ss].dual;
+  # let {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]==PMAX[i],p[i,t-1,ss]==PMIN[i]} rampup3dual[i,t,s,ss,nCutOpt] :=rampup3[i,t,s ss].dual;
+  #let {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]==PMIN[i],p[i,t-1,ss]==PMIN[i]} rampup4dual[i,t,s,ss,nCutOpt] :=rampup4[i,t,s ss].dual;
+  #let  {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]==PMIN[i],p[i,t-1,ss]==PMAX[i]} rampup5dual[i,t,s,ss,nCutOpt] :=rampup5[i,t,s ss].dual;
+  # let {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]==PMIN[i],p[i,t-1,ss]==0} rampup6dual[i,t,s,ss,nCutOpt] :=rampup6[i,t,s ss].dual;   
+  # let {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]==0,p[i,t-1,ss]==0} rampup7dual[i,t,s,ss,nCutOpt] :=rampup7[i,t,s ss].dual;
+  #let {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]==PMAX[i],p[i,t-1,ss]==0} rampdn1dual[i,t,s,ss,nCutOpt] :=rampdn1[i,t,s ss].dual;
+  #let {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]==PMAX[i],p[i,t-1,ss]==PMAX[i]} rampdn2dual[i,t,s,ss,nCutOpt] :=rampdn2[i,t,s ss].dual;
+  # let {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]==PMAX[i],p[i,t-1,ss]==PMIN[i]} rampdn3dual[i,t,s,ss,nCutOpt] :=rampdn3[i,t,s ss].dual;
+  #  let   {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]==PMIN[i],p[i,t-1,ss]==PMIN[i]} rampdn5dual[i,t,s,ss,nCutOpt] :=rampdn5[i,t,s ss].dual;
+  #  let {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]==PMIN[i],p[i,t-1,ss]==PMAX[i]} rampdn4dual[i,t,s,ss,nCutOpt] := rampdn4[i,t,s ss].dual;
+  # let {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]==PMIN[i],p[i,t-1,ss]==0} rampdn6dual[i,t,s,ss,nCutOpt] := rampdn6[i,t,s ss].dual;   
+  # let {i in I, t in T, s in S, ss in S: t>=2, p[i,t,s]==0,p[i,t-1,ss]==0} rampdn7dual[i,t,s,ss,nCutOpt] :=rampdn7[i,t,s ss].dual;
+    
+
+
+
+                                       
+
+                     #  let {p in PROD} bal2_price[p,ns,nCUT] := Balance2[p,s].dual;
+
+                     #  let {p in PROD, t in 2..T} 
+                     #  sell_lim_price[p,t,s,nCUT] := Sell[p,t,s].urc;  
+
+                        # let {ng in 1..N_GEN, t in 1..T} up_price[ng,t,ns,nCutOpt] := upout[ng,t,ns].dual;                  
+                        # let {t in 1..T} bal_price[t,ns,nCutOpt] := Balance[t,ns].dual;
+                  }
+                    
+                
+              #   let Z_UB[nIter+1] := costbase + sum {s in S} PROB[s]*auxsceopt[s,nIter]; 
+                  let Z_GAP[nIter+1]:= sum {s in S} 1/N_SCEN*(Exp_Stage2_Profit[s]-sum{w in WG, t in T} (WC[w,t,s])*CWC)-Min_Stage2_Profit;
+# Exp_Stage2_Profit[s] contains a constant sum{w in WG, t in T} (WC[w,t,s])*CWC, which should be excluded from the gap comparison DUAL AND theta should not
+               # constant in the objective
+             #    let Z_GAP[nIter+1]:= sum {s in S} 1/N_SCEN*(Exp_Stage2_Profit[s])-Min_Stage2_Profit;
+                  let Z_SUM[nIter+1]:= sum {s in S} 1/N_SCEN*(Exp_Stage2_Profit[s]+sum{w in WG, t in T} (WC[w,t,s])*CWC)+Expected_Profit+Expected_Profit-Min_Stage2_Profit;
+# but the constant should be included in the true objective estimation, it is the actual value
+                  if 2*(Z_GAP[nIter+1])/(Z_SUM[nIter+1]) <= BDGAP then {
+                      # display Min_Stage2_Profit, Expected_Profit;
+                      break;
+                      }
+             #    if nIter>199 then {
+               #                break;
+              #      }
+                  
+
+      };          
+           
+                    
+                          
+                 
+                            # find the true realized cost
+                                
+                               
+                             
+                                       param WCTT{WG,T};      
+        
+                                       read {w in WG,t in T} WCTT[w,t] < real94.txt;
+                                       let totalcost :=  sum {i in I, t in T} SUC[i]*z[i,t]+ sum {i in I, t in T} SDC [i]*y[i,t]+
+                                                   sum {i in I, t in T} NLC[i]*u[i,t];  # first-stage cost;
+                                      
+                                           
+                                               
+                                                                           for {w in WG}
+                                                                           {
+                                                                            for {t in T}
+                                                                            {
+                                                                             let WCT[w,t,1] :=WCTT[w,t];
+                                
+                                                                            }
+                                                                            } 
+                                                                     solve SubT[1];
+                                                                     let totalcost := totalcost+Exp_Stage2_ProfitT[1];
+                                                                 
+                                              printf "%.2f\n", totalcost >> sixbusday94.txt;   # calculate the true objective                    
+                                    
+            
+      
